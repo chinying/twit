@@ -9,7 +9,7 @@ import redis
 
 from typing import Optional
 from starlette.requests import Request
-from starlette.status import HTTP_403_FORBIDDEN
+from starlette.status import HTTP_403_FORBIDDEN, HTTP_500_INTERNAL_SERVER_ERROR
 from fastapi import HTTPException
 from fastapi.security.base import SecurityBase
 from fastapi.security.utils import get_authorization_scheme_param
@@ -50,10 +50,13 @@ class CookieAuth(SecurityBase):
         self.auto_error = auto_error
 
     async def __call__(self, request: Request) -> Optional[str]:
-        print("invoked")
-        cookies: str = request.cookies.get("Authorization")
+        cookies: Optional[str] = request.cookies.get("Authorization")
+        if not cookies:
+            raise HTTPException(
+                status_code=HTTP_403_FORBIDDEN, detail="Not authenticated"
+            )
         scheme, param = get_authorization_scheme_param(cookies)
-        if not cookies or scheme.lower() != "bearer":
+        if scheme.lower() != "bearer":
             if self.auto_error:
                 raise HTTPException(
                     status_code=HTTP_403_FORBIDDEN, detail="Not authenticated"
@@ -64,7 +67,10 @@ class CookieAuth(SecurityBase):
             try:
                 s = verify_jwt(param)
                 print("success", s)
-                return s
+                if 'name' in s:
+                    return s['name']
+                else:
+                    raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Unable to obtain user")
             except Exception as e:
                 print("exception", e)
                 raise e

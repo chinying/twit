@@ -6,10 +6,11 @@ from app.schemas.auth import RequestOTPInput, VerifyOTPInput
 from sqlalchemy.orm import Session
 
 from app.services.jwt import encode_cookie
-from app.crud import user
+from app.crud import user, tweet
 
 from app.db import SessionLocal
 from app.schemas.user import BaseUser, UserCreate
+from app.schemas.tweet import PostTweetInput, TweetCreate
 
 from app.config import COOKIE_DOMAIN
 
@@ -38,6 +39,13 @@ def get_otp(body: RequestOTPInput):
 @router.get("/secret")
 def secret_route(auth: CookieAuth = Depends(cookie_auth)):
     return "protected_route"
+
+
+@router.post("/tweet")
+def post_tweet(body: PostTweetInput, auth: CookieAuth = Depends(cookie_auth), db: Session = Depends(get_db)):
+    session_user = user.get_user(db, auth)
+    tweet.create_tweet(db, TweetCreate(message=body.message, author_id=session_user.id))
+    return 'created'
 
 
 @router.post("/login")

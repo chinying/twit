@@ -8,7 +8,7 @@ class User:
     def __init__(self):
         self.model = models.User
 
-    def get_or_create_user(self, db: Session, user: UserCreate) -> User:
+    def get_or_create_user(self, db: Session, user: UserCreate) -> models.User:
         try:
             return db.query(self.model).filter(self.model.email == user.email).one()
         except Exception as e:
@@ -20,5 +20,8 @@ class User:
             db.refresh(new_user)
             return new_user
 
+
+    def get_user(self, db: Session, email: str) -> models.User:
+        return db.query(self.model).filter(self.model.email == email).one()
 
 user = User()
